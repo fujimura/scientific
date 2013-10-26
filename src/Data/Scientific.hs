@@ -76,13 +76,13 @@ infixr 6 <>
 -- A scientific number with 'coefficient' @c@ and 'base10Exponent' @e@
 -- corresponds to the 'Fractional' number: @'fromInteger' c * 10 '^^' e@
 data Scientific = Scientific
-    { coefficient    ::                !Integer -- ^ The coefficient of a scientific number.
-    , base10Exponent :: {-# UNPACK #-} !Int     -- ^ The base-10 exponent of a scientific number.
+    { coefficient    :: !Integer -- ^ The coefficient of a scientific number.
+    , base10Exponent :: !Integer -- ^ The base-10 exponent of a scientific number.
     } deriving (Typeable)
 
 -- | @scientific c e@ constructs a scientific number with
 -- 'coefficient' @c@ and 'base10Exponent' @e@.
-scientific :: Integer -> Int -> Scientific
+scientific :: Integer -> Integer -> Scientific
 scientific = Scientific
 {-# INLINE scientific #-}
 
@@ -228,7 +228,7 @@ instance Fractional Scientific where
         numer = numerator   rational
         denom = denominator rational
 
-        go :: Integer -> Integer -> Int -> Scientific
+        go :: Integer -> Integer -> Integer -> Scientific
         go  0 !c !e     = scientific c e
         go !n !c !e
             | n < denom = go (n*10) (c * 10) (e-1) -- TODO: Use a logarithm here!
@@ -268,7 +268,7 @@ instance RealFrac Scientific where
 
 ----------------------------------------------------------------------
 
-whenFloating :: (Num a) => (Integer -> Int -> a) -> Scientific -> a
+whenFloating :: (Num a) => (Integer -> Integer -> a) -> Scientific -> a
 whenFloating f (Scientific c e)
     | e < 0     = f c e
     | otherwise = fromInteger c * 10 ^ e
@@ -324,7 +324,7 @@ fromRealFloat rf
         where
           (digits, e) = floatToDigits 10 r
 
-          go []     !c !n = scientific c (e - n)
+          go []     !c !n = scientific c (fromIntegral e - n)
           go (d:ds) !c !n = go ds (c * 10 + fromIntegral d) (n + 1)
 {-# INLINE fromRealFloat #-}
 
@@ -351,7 +351,7 @@ fromRealFloat rf
 --      (3) @0 <= di <= 9@
 toDecimalDigits :: Scientific -> ([Int], Int)
 toDecimalDigits (Scientific 0 _) = ([0], 0)
-toDecimalDigits (Scientific c e) = (is, n + e)
+toDecimalDigits (Scientific c e) = (is, n + fromIntegral e)
   where
     (is, n) = reverseAndLength $ digits c
 
