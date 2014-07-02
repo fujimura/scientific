@@ -11,9 +11,11 @@ module Main where
 
 import           Control.Applicative
 import           Control.Monad
+import           Data.Int
 import           Data.Scientific                    as Scientific
 import           Test.Tasty
 import           Test.Tasty.Runners.AntXML
+import           Test.Tasty.HUnit
 import qualified Test.SmallCheck                    as SC
 import qualified Test.SmallCheck.Series             as SC
 import qualified Test.Tasty.SmallCheck              as SC  (testProperty)
@@ -146,6 +148,33 @@ main = testMain $ testGroup "scientific"
              (floatingOrInteger (realToFrac d) :: Either Double Integer) == Left d)
           (\(d::Double) -> isFloating d QC.==>
              (floatingOrInteger (realToFrac d) :: Either Double Integer) == Left d)
+      ]
+    , testGroup "floatingOrInt"
+      [ testProperty "correct conversion" $ \s ->
+            case floatingOrInt s :: Either Double Int of
+              Left  d -> d == toRealFloat s
+              Right i -> i == fromInteger (coefficient s') * 10^(base10Exponent s')
+                  where
+                    s' = normalize s
+      , testProperty "Integer == Right" $ \(i::Int) ->
+          (floatingOrInt (fromInteger $ fromIntegral i) :: Either Double Int) == Right i
+      , smallQuick "Double == Left"
+          (\(d::Double) -> isFloating d SC.==>
+             (floatingOrInt (realToFrac d) :: Either Double Int) == Left d)
+          (\(d::Double) -> isFloating d QC.==>
+             (floatingOrInt (realToFrac d) :: Either Double Int) == Left d)
+      ]
+    ]
+  , testGroup "floatingOrInt"
+    [ testGroup "to Double Int64" $
+      [ testCase "succ of maxBound" $
+        let i = succ . fromIntegral $ (maxBound :: Int64)
+            s = scientific i 0
+        in (floatingOrInt s :: Either Double Int64) @?= Right 0
+      , testCase "pred of minBound" $
+        let i = pred . fromIntegral $ (minBound :: Int64)
+            s = scientific i 0
+        in (floatingOrInt s :: Either Double Int64) @?= Right 0
       ]
     ]
   ]

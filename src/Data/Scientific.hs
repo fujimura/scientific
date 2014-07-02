@@ -55,6 +55,7 @@ module Data.Scientific
     , fromFloatDigits
     , toRealFloat
     , floatingOrInteger
+    , floatingOrInt
 
       -- * Pretty printing
     , formatScientific
@@ -470,6 +471,19 @@ floatingOrInteger s
   where
     s' = normalize s
 
+floatingOrInt :: forall r i. (RealFloat r, Integral i, Bounded i) => Scientific -> Either r i
+floatingOrInt s
+    | integral && (s < min || max < s) = Right 0
+    | positive                         = Right (toIntegral   s)
+    | negative                         = Right (toIntegral   s')
+    | otherwise                        = Left  (toRealFloat  s')
+  where
+    s' = normalize s
+    max = scientific (fromIntegral (maxBound :: i)) 0
+    min = scientific (fromIntegral (minBound :: i)) 0
+    positive = base10Exponent s  >= 0
+    negative = base10Exponent s' >= 0
+    integral = positive || negative
 
 ----------------------------------------------------------------------
 -- Parsing
